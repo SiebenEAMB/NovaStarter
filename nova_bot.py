@@ -22,9 +22,9 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 bot = application.bot
 
-# --- Telegram Command Handlers ---
+# --- Telegram Handlers ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hello! I am Nova.")
+    await update.message.reply_text("Hello! I am Nova and I’m finally awake.")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
@@ -36,7 +36,7 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_m
 # --- Flask Routes ---
 @app.route("/", methods=["GET"])
 def index():
-    return "Nova webhook active."
+    return "Nova webhook is active."
 
 @app.route("/webhook", methods=["POST"])
 async def webhook():
@@ -56,14 +56,17 @@ async def webhook():
         print("❌ Webhook error:", str(e))
         traceback.print_exc()
         return "error", 500
-        
-# --- Startup: Set Webhook & Run Server ---
+
+# --- Startup & Run ---
 async def main():
     await application.initialize()
-    await application.start()  # REQUIRED or messages won't process
     await bot.set_webhook(WEBHOOK_URL)
     print(f"✅ Webhook set: {WEBHOOK_URL}")
-    await application.updater.start_polling()  # <-- ACTIVATE dispatcher
+
+    # This is key — dispatcher must be running
+    await application.start()
+    print("🚀 Telegram bot application started.")
+
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
 if __name__ == "__main__":
