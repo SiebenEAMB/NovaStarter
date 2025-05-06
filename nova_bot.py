@@ -56,8 +56,7 @@ async def webhook():
         print("❌ Webhook error:", str(e))
         traceback.print_exc()
         return "error", 500
-
-
+        
 # --- Startup: Set Webhook & Run Server ---
 async def main():
     await application.initialize()
