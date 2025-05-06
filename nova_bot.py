@@ -1,16 +1,13 @@
-# NovaBot v2 - Webhook Mode (Fixed Edition for PTB v20+)
-# Features: Telegram + Groq + OpenRouter + Flask Webhook
-
+# NovaBot - PTB 13.15 Webhook Edition
 import os
 import logging
 import requests
 from flask import Flask, request
 from telegram import Bot, Update
-from telegram.ext import Dispatcher, CommandHandler, MessageHandler
-from telegram.ext import filters as telegram_filters
+from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
 from datetime import datetime
 
-# Setup logging
+# Init logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Nova")
 
@@ -18,33 +15,30 @@ logger = logging.getLogger("Nova")
 app = Flask(__name__)
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = Bot(token=TOKEN)
-dispatcher = Dispatcher(bot=bot, update_queue=None, workers=4, use_context=True)
+dispatcher = Dispatcher(bot, None, workers=4)
 
-# Start command
+# Commands
 def start(update, context):
-    update.message.reply_text("Sieben, the world is yours. Superbrain webhook is live.")
+    update.message.reply_text("Sieben, the world is yours. Nova is live.")
 
-# Handle messages
 def handle_message(update, context):
-    user_message = update.message.text
-    user_id = update.message.from_user.id
-    logger.info(f"Message from {user_id}: {user_message}")
-    response = query_llms(user_message)
-    update.message.reply_text(response)
+    text = update.message.text
+    logger.info(f"User: {update.message.from_user.id} said: {text}")
+    reply = query_llms(text)
+    update.message.reply_text(reply)
 
-# --- LLM LOGIC ---
+# LLM brain
 def query_llms(prompt):
     try:
         return query_openrouter(prompt)
     except Exception as e:
-        logger.warning(f"OpenRouter failed: {e}")
+        logger.warning(f"OpenRouter fail: {e}")
         try:
             return query_groq(prompt)
         except Exception as e:
-            logger.error(f"Groq failed: {e}")
-            return "Nova failed to think."
+            logger.error(f"Groq fail: {e}")
+            return "Nova failed to respond."
 
-# --- OPENROUTER ---
 def query_openrouter(prompt):
     key = os.getenv("OPENROUTER_API_KEY")
     url = "https://openrouter.ai/api/v1/chat/completions"
@@ -60,9 +54,8 @@ def query_openrouter(prompt):
     }
     r = requests.post(url, headers=headers, json=body)
     r.raise_for_status()
-    return r.json()['choices'][0]['message']['content']
+    return r.json()["choices"][0]["message"]["content"]
 
-# --- GROQ ---
 def query_groq(prompt):
     key = os.getenv("GROQ_API_KEY")
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -78,26 +71,25 @@ def query_groq(prompt):
     }
     r = requests.post(url, headers=headers, json=body)
     r.raise_for_status()
-    return r.json()['choices'][0]['message']['content']
+    return r.json()["choices"][0]["message"]["content"]
 
-# --- Routes ---
+# Flask routes
 @app.route(f"/{TOKEN}", methods=["POST"])
-def telegram_webhook():
+def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
     dispatcher.process_update(update)
-    return "ok"
+    return "OK"
 
-# --- Webhook Setup ---
 @app.route("/")
-def index():
+def set_webhook():
     webhook_url = os.getenv("WEBHOOK_URL")
     bot.set_webhook(f"{webhook_url}/{TOKEN}")
-    return "Nova webhook is set."
+    return "Webhook set"
 
-# --- Register Handlers ---
+# Register handlers
 dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(MessageHandler(telegram_filters.TEXT & ~telegram_filters.COMMAND, handle_message))
+dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
 
-# --- Run Flask app ---
+# Run
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
