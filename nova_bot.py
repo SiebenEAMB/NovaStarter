@@ -60,8 +60,10 @@ async def webhook():
 # --- Startup & Run ---
 async def main():
     await application.initialize()
+    await application.start()
     await bot.set_webhook(WEBHOOK_URL)
     print(f"✅ Webhook set: {WEBHOOK_URL}")
+    print("🚀 Telegram bot application started.")
 
     # This is key — dispatcher must be running
     await application.start()
@@ -70,4 +72,14 @@ async def main():
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
 if __name__ == "__main__":
+    import threading
+
+    # Run Flask in a background thread
+    def run_flask():
+        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
+
+    # Run the async bot loop separately
     asyncio.run(main())
