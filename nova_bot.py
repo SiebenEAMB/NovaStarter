@@ -9,8 +9,12 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
+from dotenv import load_dotenv
 
-# --- Initialize Bot ---
+# --- Load environment variables ---
+load_dotenv()
+
+# --- Initialize Flask and Bot ---
 app = Flask(__name__)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
@@ -18,7 +22,7 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 bot = application.bot
 
-# --- Command Handlers ---
+# --- Telegram Command Handlers ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hello! I am Nova.")
 
@@ -29,7 +33,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-# --- Webhook Setup ---
+# --- Flask Routes ---
 @app.route("/", methods=["GET"])
 def index():
     return "Nova webhook active."
@@ -40,7 +44,7 @@ async def webhook():
     await application.process_update(update)
     return "ok"
 
-# --- Startup Wrapper ---
+# --- Startup: Set Webhook & Run Server ---
 async def main():
     await application.initialize()
     await bot.set_webhook(WEBHOOK_URL)
