@@ -60,9 +60,10 @@ async def webhook():
 # --- Startup: Set Webhook & Run Server ---
 async def main():
     await application.initialize()
+    await application.start()  # REQUIRED or messages won't process
     await bot.set_webhook(WEBHOOK_URL)
-    await application.start()  # <--- THIS IS THE MISSING PIECE
     print(f"✅ Webhook set: {WEBHOOK_URL}")
+    await application.updater.start_polling()  # <-- ACTIVATE dispatcher
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
 if __name__ == "__main__":
