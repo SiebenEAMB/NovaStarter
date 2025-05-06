@@ -26,7 +26,7 @@ evolution_log = load_json("evolution_log.json")
 # Nova's intro + boot ping
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
-    greeting = f"Sieben, the world is yours.
+    greeting = f"Sieben, the world is yours."
 System check complete. Memory loaded.
 Time: {datetime.now()}"
     await update.message.reply_text(greeting)
