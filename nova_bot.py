@@ -9,13 +9,14 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
+
 # --- Initialize Bot ---
 app = Flask(__name__)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-app.bot = application.bot
+bot = application.bot
 
 # --- Command Handlers ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -35,17 +36,16 @@ def index():
 
 @app.route("/webhook", methods=["POST"])
 async def webhook():
-    update = Update.de_json(request.get_json(force=True), app.bot)
+    update = Update.de_json(request.get_json(force=True), bot)
     await application.process_update(update)
     return "ok"
 
-@app.before_first_request
-def init_webhook():
-    app.bot.set_webhook(WEBHOOK_URL)
+# --- Startup Wrapper ---
+async def main():
+    await application.initialize()
+    await bot.set_webhook(WEBHOOK_URL)
     print(f"✅ Webhook set: {WEBHOOK_URL}")
-
-# --- Run Flask ---
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(application.initialize())
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+if __name__ == "__main__":
+    asyncio.run(main())
