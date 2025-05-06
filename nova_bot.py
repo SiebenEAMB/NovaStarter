@@ -1,4 +1,4 @@
-# NovaBot v2 - Webhook Mode (Sieben Edition)
+# NovaBot v2 - Webhook Mode (Fixed Edition for PTB v20+)
 # Features: Telegram + Groq + OpenRouter + Flask Webhook
 
 import os
@@ -6,7 +6,8 @@ import logging
 import requests
 from flask import Flask, request
 from telegram import Bot, Update
-from telegram.ext import Dispatcher, CommandHandler, MessageHandler, filters
+from telegram.ext import Dispatcher, CommandHandler, MessageHandler
+from telegram.ext import filters as telegram_filters
 from datetime import datetime
 
 # Setup logging
@@ -95,7 +96,7 @@ def index():
 
 # --- Register Handlers ---
 dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+dispatcher.add_handler(MessageHandler(telegram_filters.TEXT & ~telegram_filters.COMMAND, handle_message))
 
 # --- Run Flask app ---
 if __name__ == "__main__":
