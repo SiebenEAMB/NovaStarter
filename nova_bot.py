@@ -61,7 +61,7 @@ async def webhook():
 async def main():
     await application.initialize()
     await bot.set_webhook(WEBHOOK_URL)
-    await application.start()
+    await application.start()  # <--- THIS IS THE MISSING PIECE
     print(f"✅ Webhook set: {WEBHOOK_URL}")
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
