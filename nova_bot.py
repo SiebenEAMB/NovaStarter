@@ -40,9 +40,15 @@ def index():
 
 @app.route("/webhook", methods=["POST"])
 async def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    await application.process_update(update)
-    return "ok"
+    try:
+        data = request.get_json(force=True)
+        print("📩 Incoming update:", data)
+        update = Update.de_json(data, bot)
+        await application.process_update(update)
+        return "ok"
+    except Exception as e:
+        print("❌ Webhook error:", str(e))
+        return "error", 500
 
 # --- Startup: Set Webhook & Run Server ---
 async def main():
