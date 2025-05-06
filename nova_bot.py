@@ -1,95 +1,50 @@
-# NovaBot - PTB 13.15 Webhook Edition
 import os
-import logging
-import requests
 from flask import Flask, request
 from telegram import Bot, Update
-from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
-from datetime import datetime
+from telegram.ext import Dispatcher, CommandHandler, MessageHandler, filters
+import logging
 
-# Init logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("Nova")
+# --- Setup Logging ---
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Init Flask app
+# --- Init Flask ---
 app = Flask(__name__)
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-bot = Bot(token=TOKEN)
-dispatcher = Dispatcher(bot, None, workers=4)
 
-# Commands
+# --- Telegram Bot Setup ---
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+print(f"Setting webhook to: {WEBHOOK_URL}")  # Debug log to confirm URL
+
+bot = Bot(token=TOKEN)
+dispatcher = Dispatcher(bot=bot, update_queue=None, workers=1, use_context=True)
+
+# --- Handlers ---
 def start(update, context):
-    update.message.reply_text("Sieben, the world is yours. Nova is live.")
+    update.message.reply_text("Nova online. How can I assist you today?")
 
 def handle_message(update, context):
-    text = update.message.text
-    logger.info(f"User: {update.message.from_user.id} said: {text}")
-    reply = query_llms(text)
-    update.message.reply_text(reply)
+    user_text = update.message.text
+    update.message.reply_text(f"Nova Echo: {user_text}")
 
-# LLM brain
-def query_llms(prompt):
-    try:
-        return query_openrouter(prompt)
-    except Exception as e:
-        logger.warning(f"OpenRouter fail: {e}")
-        try:
-            return query_groq(prompt)
-        except Exception as e:
-            logger.error(f"Groq fail: {e}")
-            return "Nova failed to respond."
+# Register Handlers
+dispatcher.add_handler(CommandHandler("start", start))
+dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-def query_openrouter(prompt):
-    key = os.getenv("OPENROUTER_API_KEY")
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json"
-    }
-    body = {
-        "model": "openrouter/openchat-3.5",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7,
-        "stream": False
-    }
-    r = requests.post(url, headers=headers, json=body)
-    r.raise_for_status()
-    return r.json()["choices"][0]["message"]["content"]
-
-def query_groq(prompt):
-    key = os.getenv("GROQ_API_KEY")
-    url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json"
-    }
-    body = {
-        "model": "mixtral-8x7b-32768",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7,
-        "stream": False
-    }
-    r = requests.post(url, headers=headers, json=body)
-    r.raise_for_status()
-    return r.json()["choices"][0]["message"]["content"]
-
-# Flask routes
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
+# --- Webhook Route ---
+@app.route(f"/{TOKEN}", methods=['POST'])
+def receive_update():
     update = Update.de_json(request.get_json(force=True), bot)
     dispatcher.process_update(update)
-    return "OK"
+    return "ok"
 
-@app.route("/")
-def set_webhook():
-    webhook_url = os.getenv("WEBHOOK_URL")
-    bot.set_webhook(f"{webhook_url}/{TOKEN}")
-    return "Webhook set"
+@app.route('/')
+def index():
+    return "Nova is alive. Webhook is set."
 
-# Register handlers
-dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+# --- Set Webhook ---
+bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
 
-# Run
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+# --- Run App ---
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
