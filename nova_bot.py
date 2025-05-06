@@ -28,7 +28,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
     greeting = f"Sieben, the world is yours."
 System check complete. Memory loaded.
-Time: {datetime.now()}"
+print(f"Time: {datetime.now()}")
     await update.message.reply_text(greeting)
 
     evolution_log.append({
