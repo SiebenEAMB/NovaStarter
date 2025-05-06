@@ -16,7 +16,6 @@ app = Flask(__name__)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-SURFER_API_KEY = os.getenv("SURFER_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
@@ -24,18 +23,39 @@ bot = application.bot
 
 async def query_llms(prompt: str) -> str:
     try:
-        headers = {"Authorization": f"Bearer {SURFER_API_KEY}", "Content-Type": "application/json"}
-        response = requests.post("https://api.surferseo.com/v1/chat/completions",
-                                 headers=headers, json={"model": "gpt-3.5", "messages": [{"role": "user", "content": prompt}]})
+        # Try Groq first
+        groq_headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
+        groq_data = {
+            "messages": [{"role": "user", "content": prompt}],
+            "model": "mixtral-8x7b-32768",
+            "temperature": 0.7
+        }
+        response = requests.post("https://api.groq.com/openai/v1/chat/completions",
+                                 headers=groq_headers, json=groq_data)
         if response.ok:
-            return response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response.")
-        else:
-            return f"Surfer error: {response.text}"
+            return response.json()["choices"][0]["message"]["content"]
+
+        # Then try OpenRouter
+        or_headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        or_data = {
+            "model": "mistralai/mixtral-8x7b",
+            "messages": [{"role": "user", "content": prompt}]
+        }
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions",
+                                 headers=or_headers, json=or_data)
+        if response.ok:
+            return response.json()["choices"][0]["message"]["content"]
+
+        return "All LLM providers failed to respond."
+
     except Exception as e:
-        return f"Query failed: {str(e)}"
+        return f"LLM Error: {str(e)}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Nova is now fully awake. Ask me anything.")
+    await update.message.reply_text("Nova's new brain is live — talk to me!")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
@@ -47,7 +67,7 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_m
 
 @app.route("/", methods=["GET"])
 def index():
-    return "Nova Phase 2 is live."
+    return "Nova webhook alive."
 
 @app.route("/webhook", methods=["POST"])
 async def webhook():
@@ -67,7 +87,7 @@ async def main():
     await application.start()
     await bot.set_webhook(WEBHOOK_URL)
     print(f"✅ Webhook set: {WEBHOOK_URL}")
-    print("🚀 Nova Superbrain online.")
+    print("🧠 Nova running Groq/OpenRouter brain.")
 
 if __name__ == "__main__":
     import threading
