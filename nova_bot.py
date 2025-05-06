@@ -39,7 +39,8 @@ def webhook():
 # --- Set Webhook ---
 @app.before_first_request
 def setup_webhook():
-    telegram_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook")
+    webhook_set = app.bot.set_webhook(WEBHOOK_URL)
+    print(f"Webhook set: {webhook_set}")
 
 # --- Launch App ---
 if __name__ == "__main__":
