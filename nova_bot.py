@@ -43,13 +43,13 @@ async def webhook():
     try:
         data = request.get_json(force=True)
         print("📩 Incoming update:", data)
-        
+
         update = Update.de_json(data, bot)
         print("🛠 Update object created.")
 
         await application.process_update(update)
         print("✅ Update processed successfully.")
-        
+
         return "ok"
     except Exception as e:
         import traceback
